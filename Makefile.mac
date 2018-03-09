@@ -1,0 +1,81 @@
+
+cxx = g++ -stdlib=libstdc++
+plugin_name := curveInterp.bundle
+ilmbase = ilmbase-1.0.2
+
+builddir = build/mac-maya-$(maya_version)
+maya_location := /Applications/Autodesk/maya$(maya_version)/Maya.app/Contents
+maya_include := $(maya_location)/../../devkit/include
+osx_sdk := -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -mmacosx-version-min=10.7
+dsoflags := $(osx_sdk) -bundle -lm -arch x86_64 -m64
+cxxflags := -c -Wno-comment -fPIC -fvisibility=hidden \
+	-O3 -funroll-loops -msse -mfpmath=sse \
+	-frtti -Wno-ctor-dtor-privacy -Wall \
+	-DBits64_ -m64 -arch x86_64 \
+	-D_BOOL -DCC_GNU_ -DOSMac_ -DOSMacOSX_ -DOSMac_MachO_ $(osx_sdk) \
+	-D_LANGUAGE_C_PLUS_PLUS -DREQUIRE_IOSTREAM \
+	-I$(ilmbase)/Imath -I$(ilmbase)/Iex -I$(maya_include)
+libs := -fno-gnu-keywords -fpascal-strings -headerpad_max_install_names \
+	-framework System -framework CoreServices -framework Carbon \
+	-framework Cocoa -framework ApplicationServices -framework IOKit \
+	-L"$(maya_location)/MacOS" -Wl,-executable_path,"$(maya_location)/MacOS" \
+	-lFoundation -lOpenMaya -lOpenMayaUI -lOpenMayaFX \
+	-lOpenMayaAnim -lOpenMayaRender -framework AGL -framework OpenGL
+
+objext = o
+cxxext = cpp
+
+all : $(builddir)/$(plugin_name)
+
+clean:
+	-rm -r $(builddir)
+
+# compile
+srcs := CurveInterp.cpp Plugin.cpp 
+$(builddir)/%.$(objext) : src/%.$(cxxext)
+	mkdir -p $(@D)
+	$(cxx) $(cxxflags) -o $@ $<
+
+# link
+objs := $(patsubst %.$(cxxext),$(builddir)/%.$(objext),$(srcs))
+$(builddir)/$(plugin_name) : $(objs)
+	mkdir -p $(@D)
+	$(cxx) $(dsoflags) $^ $(libs) -o $@
+
+# install
+install_maya_dir = $(HOME)/Library/Preferences/Autodesk/maya/$(maya_version)
+install_maya_plugin_dir = $(install_maya_dir)/plug-ins
+install_maya_mel_dir = $(install_maya_dir)/scripts
+.PHONY: install 
+install : all
+	mkdir -p $(install_maya_plugin_dir)
+	mkdir -p $(install_maya_mel_dir)
+	/usr/bin/install -v $(builddir)/$(plugin_name) $(install_maya_plugin_dir)/
+	/usr/bin/install -v $(builddir)/../../../scripts/*.mel $(install_maya_mel_dir)/
+
+# dependency generation
+nodeps = 0
+depdir = $(builddir)/deps
+$(depdir)/%.d : src/%.$(cxxext)
+	mkdir -p $(@D)
+	$(SHELL) -c '$(cxx) -DGENERATE_DEPENDS -MM -MF $@ \
+	-MT $$\(builddir\)/$*.$(objext) -MT $@ \
+	$(cxxflags) $< || rm -f $@; [ -e $@ ]'
+
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(nodeps),1)
+-include $(srcs:%.$(cxxext)=$(depdir)/%.d)
+endif
+endif
+
+# build in part of ilmbase
+$(builddir)/$(plugin_name) : $(builddir)/$(ilmbase)/Iex/IexBaseExc.$(objext)
+$(builddir)/$(ilmbase)/%.$(objext) : $(ilmbase)/%.cpp
+	mkdir -p $(@D)
+	$(cxx) $(cxxflags) -o $@ $<
+$(objs) : $(ilmbase)
+$(ilmbase): $(ilmbase).tar.gz
+	tar xvfz $<
+$(ilmbase).tar.gz:
+	curl -L http://download.savannah.nongnu.org/releases/openexr/$@ -o $@
+

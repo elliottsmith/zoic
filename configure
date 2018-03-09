@@ -1,0 +1,56 @@
+#!/bin/sh
+
+prefix=/usr/local
+debugsym=true
+
+for arg in "$@"; do
+    case "$arg" in
+    --prefix=*)
+        prefix=`echo $arg | sed 's/--prefix=//'`
+        ;;
+    --arnoldpath=*)
+        arnoldpath=`echo $arg | sed 's/--arnoldpath=//'`
+        ;;
+    --arnoldver=*)
+        arnoldver=`echo $arg | sed 's/--arnoldver=//'`
+        ;;        
+    --cxx=*)
+        cxx=`echo $arg | sed 's/--cxx=//'`
+        ;;        
+    --version=*)
+        version=`echo $arg | sed 's/--version=//'`
+        ;;
+    --help)
+        echo 'usage: ./configure [options]'
+        echo 'options:'
+        echo '  --prefix=<path>: installation prefix'
+        echo '  --cxx=<path>: cxx path'        
+        echo '  --arnoldpath=<path>: arnold path'
+        echo '  --arnoldver=<path>: short arnold version'        
+        echo '  --version=<path>: version'
+        echo 'all invalid options are silently ignored'
+        exit 0
+        ;;
+    esac
+done
+
+if [[ -f Makefile ]]; then
+    rm Makefile
+fi
+
+echo "PREFIX = $prefix" > Makefile
+echo "ARNOLD_PATH = $arnoldpath" >> Makefile
+echo "ARNOLDVER = $arnoldver" >> Makefile
+echo "VERSION = $version" >> Makefile
+echo "CXX = $cxx" >> Makefile
+
+# echo "CC = gcc"  >> Makefile
+# echo "CXX = g++"  >> Makefile
+
+if [[ $DISTRIBUTION == darwin ]];then
+    echo "arnold_path = $arnoldpath" >>Makefile
+    cat Makefile.mac >> Makefile
+else
+    cat Makefile.in >>Makefile
+fi
+echo "Now run make"

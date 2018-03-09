@@ -1,0 +1,36 @@
+
+BUILD := build
+NAME = zoic
+
+CXXFLAGS=-std=c++11 -Wall -O3 -shared -fPIC -I$(ARNOLD_PATH)/include
+LDFLAGS=-L${ARNOLD_PATH}/bin -lai
+
+HEADERS=\
+
+.PHONY: directories install clean all
+
+main: directories zoic.o
+	$(CXX) $(CXXFLAGS) -shared $(BUILD)/zoic.o -o $(BUILD)/zoic.so $(LDFLAGS)
+
+zoic.o: src/zoic.cpp
+	$(CXX) $(CXXFLAGS) src/zoic.cpp -c -o $(BUILD)/zoic.o $(CFLAGS)
+
+directories:
+	mkdir -p $(BUILD)
+
+clean:
+	rm -rf $(BUILD)
+
+install:
+	# make the versioned dirs
+	mkdir -p $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/ae/
+	mkdir -p $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/scripts/
+	mkdir -p $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/shaders/
+	mkdir -p $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/dat/		
+	
+	cp ./$(BUILD)/zoic.so $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/shaders/
+	cp src/zoic.mtd $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/shaders/	
+	cp maya/scripts/makeZoicCamera.mel $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/scripts/
+	cp src/*.py $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/scripts/	
+	cp maya/ae/aiZoicTemplate.py $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/ae/
+	cp lenses_tabular/*.dat $(DESTDIR)$(PREFIX)/$(ARNOLDVER)/$(NAME)/$(VERSION)/dat/
