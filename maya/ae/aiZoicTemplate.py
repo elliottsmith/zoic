@@ -2,6 +2,7 @@ import mtoa.ui.ae.templates as templates
 import pymel.core as pm
 import maya.cmds as cmds
 import mtoa.ui.ae.utils as aeUtils
+import os
 
 class aiZoicTemplate(templates.AttributeTemplate):
 
@@ -22,7 +23,8 @@ class aiZoicTemplate(templates.AttributeTemplate):
 
     def LoadFilenameButtonPushLensData(self, *args):
         basicFilter = 'All Files (*.*)'
-        ret = cmds.fileDialog2(fileFilter=basicFilter, dialogStyle=2, cap='Load File',okc='Load',fm=4)
+        start_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../dat')
+        ret = cmds.fileDialog2(fileFilter=basicFilter, dialogStyle=2, cap='Load File',okc='Load',fm=4, dir=start_dir)
         if ret is not None and len(ret):
             self.filenameEditLensData(ret[0])
             cmds.textFieldButtonGrp("filenameLensDataGrp", edit=True, text=ret[0])
